@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akıllı İlaç Takip</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: 100%; max-width: 450px; }
+        
+        /* Bayi Butonları Tasarımı */
+        .bayi-secim { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-bayi { flex: 1; padding: 15px; border-radius: 8px; border: 2px solid transparent; font-weight: bold; cursor: pointer; transition: 0.3s; opacity: 0.6; }
+        .deniz { background: #2980b9; color: white; }
+        .yuksel { background: #e67e22; color: white; }
+        
+        /* Aktif Seçilen Buton */
+        .active { opacity: 1; border-color: #2c3e50; transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        label { font-size: 13px; font-weight: 600; color: #555; margin-top: 10px; display: block; }
+        .btn-send { background: #27ae60; color: white; border: none; font-weight: bold; height: 55px; margin-top: 20px; cursor: pointer; }
+        .btn-send:disabled { background: #95a5a6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">İlaç Kayıt Sistemi</h2>
+    
+    <label>Bayi Seçin</label>
+    <div class="bayi-secim">
+        <button id="btnDeniz" class="btn-bayi deniz" onclick="bayiSec('Deniz Tarım 2026', 'btnDeniz')">DENİZ TARIM</button>
+        <button id="btnYuksel" class="btn-bayi yuksel" onclick="bayiSec('Yüksel Tarım 2026', 'btnYuksel')">YÜKSEL TARIM</button>
+    </div>
+
+    <div id="form-alanı">
+        <label>Tarih</label>
+        <input type="date" id="tarih">
+
+        <label>İlaç Adı</label>
+        <input type="text" id="ad" list="ilacListesi" placeholder="İlaç adını seçin veya yazın...">
+        <datalist id="ilacListesi"></datalist>
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 2;">
+                <label>Miktar</label>
+                <input type="text" id="miktar" placeholder="1 lt, 5 kg">
+            </div>
+            <div style="flex: 1;">
+                <label>Adet</label>
+                <input type="number" id="adet" value="1">
+            </div>
+        </div>
+
+        <label>Birim Fiyat (₺)</label>
+        <input type="number" id="fiyat" step="0.01" placeholder="0.00">
+
+        <label>Ürün Türü</label>
+        <select id="turu">
+            <option value="Bağ">Bağ</option>
+            <option value="Domates">Domates</option>
+            <option value="Kayısı">Kayısı</option>
+            <option value="Diğer">Diğer</option>
+        </select>
+
+        <button class="btn-send" id="kaydetBtn" onclick="gonder()">EXCEL'E KAYDET</button>
+    </div>
+</div>
+
+<script>
+    let seciliBayi = "";
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwpqWXIBYSKPiAsQ5kbcGEWZFXdgKi447XwL6Yi6eD7OTS47OdAeD9ki4xuB3_o1uCFXw/exec';
+    
+    // Sayfa açıldığında tarihi bugüne ayarla ve listeyi yükle
+    window.onload = () => {
+        document.getElementById('tarih').valueAsDate = new Date();
+        listeyiGuncelle();
+    };
+
+    function bayiSec(bayi, btnId) {
+        seciliBayi = bayi;
+        // Butonların aktiflik durumunu güncelle
+        document.querySelectorAll('.btn-bayi').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    function listeyiGuncelle() {
+        const kayitliIlaclar = JSON.parse(localStorage.getItem('ilacHafizasi')) || [];
+        const list = document.getElementById('ilacListesi');
+        list.innerHTML = "";
+        kayitliIlaclar.forEach(ilac => {
+            let option = document.createElement('option');
+            option.value = ilac;
+            list.appendChild(option);
+        });
+    }
+
+    async function gonder() {
+        if(!seciliBayi) return alert("Lütfen önce bir BAYİ seçin!");
+        
+        const ad = document.getElementById('ad').value;
+        const fiyat = document.getElementById('fiyat').value;
+        const adet = document.getElementById('adet').value;
+
+        if(!ad || !fiyat) return alert("İlaç adı ve fiyat alanlarını doldurun!");
+
+        const btn = document.getElementById('kaydetBtn');
+        btn.disabled = true;
+        btn.innerText = "Excel'e Yazılıyor...";
+
+        // Hafıza Güncelleme
+        let kayitliIlaclar = JSON.parse(localStorage.getItem('ilacHafizasi')) || [];
+        if (!kayitliIlaclar.includes(ad)) {
+            kayitliIlaclar.push(ad);
+            localStorage.setItem('ilacHafizasi', JSON.stringify(kayitliIlaclar));
+            listeyiGuncelle();
+        }
+
+        const veri = {
+            bayi: seciliBayi,
+            tarih: document.getElementById('tarih').value.split('-').reverse().join('.'),
+            ad: ad,
+            miktar: document.getElementById('miktar').value,
+            adet: adet,
+            fiyat: fiyat,
+            toplam: (adet * fiyat).toFixed(2),
+            turu: document.getElementById('turu').value
+        };
+
+        try {
+            await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(veri) });
+            alert(seciliBayi + " sayfasına başarıyla kaydedildi!");
+            // Formu temizle (bayi seçimi kalsın)
+            document.getElementById('ad').value = "";
+            document.getElementById('fiyat').value = "";
+            document.getElementById('miktar').value = "";
+        } catch (e) {
+            alert("Bağlantı hatası! İnternetinizi kontrol edin.");
+        }
+        btn.disabled = false;
+        btn.innerText = "Kaydet";
+    }
+</script>
+
+</body>
+</html>
