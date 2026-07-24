@@ -2,144 +2,571 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akıllı İlaç Takip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>İlaç Kayıt Sistemi</title>
+    <!-- Web App / Mobil Simge -->
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/96/clipboard.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/clipboard.png">
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: 100%; max-width: 450px; }
-        
-        /* Bayi Butonları Tasarımı */
-        .bayi-secim { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-bayi { flex: 1; padding: 15px; border-radius: 8px; border: 2px solid transparent; font-weight: bold; cursor: pointer; transition: 0.3s; opacity: 0.6; }
-        .deniz { background: #2980b9; color: white; }
-        .yuksel { background: #e67e22; color: white; }
-        
-        /* Aktif Seçilen Buton */
-        .active { opacity: 1; border-color: #2c3e50; transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        label { font-size: 13px; font-weight: 600; color: #555; margin-top: 10px; display: block; }
-        .btn-send { background: #27ae60; color: white; border: none; font-weight: bold; height: 55px; margin-top: 20px; cursor: pointer; }
-        .btn-send:disabled { background: #95a5a6; }
+        body {
+            background-color: #f2f4f8;
+            color: #334155;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+        }
+
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        /* HIZLI TARİH BUTONLARI */
+        .date-shortcuts {
+            display: flex;
+            gap: 6px;
+        }
+
+        .date-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+        }
+        .date-btn:active {
+            background: #cbd5e1;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            height: 46px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0 14px;
+            font-size: 15px;
+            color: #1e293b;
+            outline: none;
+        }
+
+        input[type="date"] {
+            color: #2563eb;
+            font-weight: 600;
+            text-align: center;
+            background-color: #f1f5f9;
+            border: none;
+        }
+
+        /* BAYİ SEÇİMİ BUTONLARI */
+        .bayi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .bayi-btn {
+            height: 52px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #ffffff;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .bayi-btn.deniz { background-color: #73a5c6; }
+        .bayi-btn.yuksel { background-color: #ecb176; }
+
+        .bayi-btn.active {
+            box-shadow: inset 0 0 0 3px #1e293b, 0 4px 6px rgba(0,0,0,0.1);
+            transform: scale(0.98);
+        }
+
+        .row-2 {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row-2 > div {
+            flex: 1;
+        }
+
+        .btn-submit {
+            width: 100%;
+            height: 52px;
+            background-color: #27ae60;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+            box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.2);
+        }
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        /* CANLI LİSTE KUTUSU */
+        .live-list-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 14px;
+            margin-top: 20px;
+        }
+
+        .live-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .live-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .excel-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        /* ARAMA ÇUBUĞU */
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .search-box input {
+            height: 38px;
+            font-size: 13px;
+            background: #f8fafc;
+        }
+
+        .record-item {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .record-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .record-ilac {
+            font-weight: 800;
+            color: #1d4ed8;
+            font-size: 14px;
+        }
+
+        .record-time {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .record-details {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .chip {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chip-bayi { background: #e0f2fe; color: #0369a1; font-weight: 700; }
+        .chip-miktar { background: #ecfdf5; color: #047857; font-weight: 700; }
+        .chip-fiyat { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+        .chip-tur { background: #fefce8; color: #a16207; font-weight: 600; }
+
+        .delete-btn {
+            color: #ef4444;
+            background: none;
+            border: none;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            align-self: flex-end;
+            margin-top: 4px;
+        }
+
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.15s ease-out;
+            pointer-events: none;
+        }
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
 
+<div id="toast" class="toast-notification">
+    <span id="toastMsg">✅ Kaydedildi!</span>
+</div>
+
 <div class="container">
-    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">İlaç Kayıt Sistemi</h2>
-    
-    <label>Bayi Seçin</label>
-    <div class="bayi-secim">
-        <button id="btnDeniz" class="btn-bayi deniz" onclick="bayiSec('Deniz Tarım 2026', 'btnDeniz')">DENİZ TARIM</button>
-        <button id="btnYuksel" class="btn-bayi yuksel" onclick="bayiSec('Yüksel Tarım 2026', 'btnYuksel')">YÜKSEL TARIM</button>
-    </div>
 
-    <div id="form-alanı">
-        <label>Tarih</label>
-        <input type="date" id="tarih">
+    <!-- 1. SEÇENEK: MİNİMALİST DOĞA VE YAPRAK ROZETİ -->
+    <h1 style="text-align: center; font-size: 21px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span style="background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 20px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);">🌿</span> 
+        İlaç Kayıt Sistemi
+    </h1>
 
-        <label>İlaç Adı</label>
-        <input type="text" id="ad" list="ilacListesi" placeholder="İlaç adını seçin veya yazın...">
-        <datalist id="ilacListesi"></datalist>
+    <form onsubmit="return false;">
+        <!-- BAYİ SEÇİMİ -->
+        <div class="bayi-grid">
+            <button type="button" class="bayi-btn deniz" id="btnDeniz" onclick="bayiSec('Deniz Tarım 2026')">DENİZ TARIM</button>
+            <button type="button" class="bayi-btn yuksel" id="btnYuksel" onclick="bayiSec('Yüksel Tarım 2026')">YÜKSEL TARIM</button>
+        </div>
 
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 2;">
-                <label>Miktar</label>
-                <input type="text" id="miktar" placeholder="1 lt, 5 kg">
+        <div class="card" style="margin-bottom: 10px;">
+            <div class="card-header-row">
+                <div class="card-title">Tarih</div>
+                <div class="date-shortcuts">
+                    <button type="button" class="date-btn" onclick="tarihAta(0)">Bugün</button>
+                    <button type="button" class="date-btn" onclick="tarihAta(1)">Dün</button>
+                </div>
             </div>
-            <div style="flex: 1;">
-                <label>Adet</label>
-                <input type="number" id="adet" value="1">
+            <input type="date" id="tarih">
+        </div>
+
+        <div class="card" style="margin-bottom: 10px;">
+            <div class="card-title">İlaç Adı</div>
+            <input type="text" id="ilacAdi" list="ilacListesi" placeholder="İlaç adını seçin veya yazın..." autocomplete="off">
+            <datalist id="ilacListesi">
+                <!-- Geçmiş ilaçlar otomatik buraya dolacak -->
+            </datalist>
+        </div>
+
+        <div class="row-2">
+            <div class="card" style="margin-bottom: 10px;">
+                <div class="card-title">Miktar</div>
+                <input type="text" id="miktar" placeholder="1 lt, 5 kg" autocomplete="off">
+            </div>
+            <div class="card" style="margin-bottom: 10px;">
+                <div class="card-title">Adet</div>
+                <input type="number" id="adet" value="1" autocomplete="off">
             </div>
         </div>
 
-        <label>Birim Fiyat (₺)</label>
-        <input type="number" id="fiyat" step="0.01" placeholder="0.00">
+        <div class="row-2">
+            <div class="card" style="margin-bottom: 10px;">
+                <div class="card-title">Birim Fiyatı</div>
+                <input type="text" id="birimFiyat" placeholder="0.00" autocomplete="off">
+            </div>
+            <div class="card" style="margin-bottom: 10px;">
+                <div class="card-title">Ürün Türü</div>
+                <select id="urunTuru">
+                    <option value="Bağ">Bağ</option>
+                    <option value="Domates">Domates</option>
+                    <option value="Kayısı">Kayısı</option>
+                    <option value="Diğer">Diğer</option>
+                </select>
+            </div>
+        </div>
 
-        <label>Ürün Türü</label>
-        <select id="turu">
-            <option value="Bağ">Bağ</option>
-            <option value="Domates">Domates</option>
-            <option value="Kayısı">Kayısı</option>
-            <option value="Diğer">Diğer</option>
-        </select>
+        <button class="btn-submit" type="button" onclick="ilacKaydetHemFirebaseHemSheet()">EXCEL'E KAYDET</button>
+    </form>
 
-        <button class="btn-send" id="kaydetBtn" onclick="gonder()">EXCEL'E KAYDET</button>
+    <!-- ORTAK CANLI LİSTE -->
+    <div class="live-list-card">
+        <div class="live-list-header">
+            <span class="live-title">🔴 Canlı Ortak İlaç Kayıtları</span>
+            <button class="excel-btn" onclick="exportToCSV()">📥 İndir</button>
+        </div>
+        
+        <!-- ARAMA ÇUBUĞU -->
+        <div class="search-box">
+            <input type="text" id="aramaKutusu" placeholder="🔍 İlaç veya kayıt ara..." oninput="listeyiFiltrele()">
+        </div>
+
+        <div id="ilacLiveList">Veriler yükleniyor...</div>
     </div>
+
 </div>
 
 <script>
-    let seciliBayi = "";
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwpqWXIBYSKPiAsQ5kbcGEWZFXdgKi447XwL6Yi6eD7OTS47OdAeD9ki4xuB3_o1uCFXw/exec';
-    
-    // Sayfa açıldığında tarihi bugüne ayarla ve listeyi yükle
-    window.onload = () => {
-        document.getElementById('tarih').valueAsDate = new Date();
-        listeyiGuncelle();
+    const firebaseConfig = {
+      apiKey: "AiZaSyChD2AID2QKmI9KEkh5-PsXzCoV84uGd0Y",
+      authDomain: "irsaliyekayit.firebaseapp.com",
+      databaseURL: "https://irsaliyekayit-default-rtdb.firebaseio.com",
+      projectId: "irsaliyekayit",
+      storageBucket: "irsaliyekayit.appspot.com",
+      messagingSenderId: "588652490185",
+      appId: "1:588652490185:web:aa6db4403a430803264c18",
+      measurementId: "G-MNTENXS96J"
     };
 
-    function bayiSec(bayi, btnId) {
-        seciliBayi = bayi;
-        // Butonların aktiflik durumunu güncelle
-        document.querySelectorAll('.btn-bayi').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(btnId).classList.add('active');
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEzVv1aLSTqAk82KeueG0lL5cj832rdL7PCToXKTSHFC0PlKup5C7K-3xAouq6oO9dUg/exec";
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let secilenBayi = "Deniz Tarım 2026"; 
+    let tumIlacKayitlari = [];
+
+    window.onload = function() {
+        window.scrollTo(0, 0);
+        bayiSec('Deniz Tarım 2026');
+        tarihAta(0);
+        canliVeriDinle();
+    };
+
+    function bayiSec(bayiAdi) {
+        secilenBayi = bayiAdi;
+        document.getElementById('btnDeniz').classList.remove('active');
+        document.getElementById('btnYuksel').classList.remove('active');
+
+        if(bayiAdi === 'Deniz Tarım 2026') {
+            document.getElementById('btnDeniz').classList.add('active');
+        } else {
+            document.getElementById('btnYuksel').classList.add('active');
+        }
     }
 
-    function listeyiGuncelle() {
-        const kayitliIlaclar = JSON.parse(localStorage.getItem('ilacHafizasi')) || [];
-        const list = document.getElementById('ilacListesi');
-        list.innerHTML = "";
-        kayitliIlaclar.forEach(ilac => {
-            let option = document.createElement('option');
-            option.value = ilac;
-            list.appendChild(option);
+    function tarihAta(gunGeri) {
+        const d = new Date();
+        d.setDate(d.getDate() - gunGeri);
+        const offset = d.getTimezoneOffset() * 60000; 
+        const yerelZaman = new Date(d - offset).toISOString().split('T')[0];
+        document.getElementById('tarih').value = yerelZaman;
+    }
+
+    function bildirimGoster(mesaj) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastMsg').innerText = mesaj;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+
+    function ilacKaydetHemFirebaseHemSheet() {
+        if (!secilenBayi) return alert("Lütfen üst kısımdan bir Bayi seçin!");
+        
+        const ilacAdi = document.getElementById('ilacAdi').value.trim();
+        const miktar = document.getElementById('miktar').value.trim();
+        const adet = document.getElementById('adet').value.trim() || "1";
+        const birimFiyat = document.getElementById('birimFiyat').value.trim().replace(/,/g, '.') || "0";
+        const urunTuru = document.getElementById('urunTuru').value;
+        const tarihVal = document.getElementById('tarih').value.split('-').reverse().join('.');
+
+        if (!ilacAdi) return alert("Lütfen ilaç adını girin!");
+
+        const veri = {
+            tarih: tarihVal,
+            saat: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+            bayi: secilenBayi,
+            ilacAdi: ilacAdi,
+            miktar: miktar || '-',
+            adet: adet,
+            birimFiyat: birimFiyat,
+            urunTuru: urunTuru
+        };
+
+        db.ref('ilac_kayitlari').push(veri);
+
+        if (APPS_SCRIPT_URL) {
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(veri)
+            }).catch(err => console.error("Sheets Kayıt Hatası:", err));
+        }
+
+        bildirimGoster("✅ Kaydedildi!");
+        
+        document.getElementById('ilacAdi').value = '';
+        document.getElementById('miktar').value = '';
+        document.getElementById('adet').value = '1';
+        document.getElementById('birimFiyat').value = '';
+    }
+
+    function canliVeriDinle() {
+        db.ref('ilac_kayitlari').on('value', snapshot => {
+            tumIlacKayitlari = [];
+            const data = snapshot.val();
+            
+            if(data) {
+                const keys = Object.keys(data).reverse();
+                keys.forEach(key => {
+                    const item = data[key];
+                    item.id = key;
+                    tumIlacKayitlari.push(item);
+                });
+            }
+            
+            datalistGuncelle();
+            listeyiEkranaBas(tumIlacKayitlari);
         });
     }
 
-    async function gonder() {
-        if(!seciliBayi) return alert("Lütfen önce bir BAYİ seçin!");
+    function datalistGuncelle() {
+        const datalist = document.getElementById('ilacListesi');
+        datalist.innerHTML = '';
+        const benzersizIlaclar = [...new Set(tumIlacKayitlari.map(item => item.ilacAdi))];
         
-        const ad = document.getElementById('ad').value;
-        const fiyat = document.getElementById('fiyat').value;
-        const adet = document.getElementById('adet').value;
+        benzersizIlaclar.forEach(ilac => {
+            const opt = document.createElement('option');
+            opt.value = ilac;
+            datalist.appendChild(opt);
+        });
+    }
 
-        if(!ad || !fiyat) return alert("İlaç adı ve fiyat alanlarını doldurun!");
+    function listeyiEkranaBas(kayitlar) {
+        const container = document.getElementById('ilacLiveList');
+        container.innerHTML = '';
 
-        const btn = document.getElementById('kaydetBtn');
-        btn.disabled = true;
-        btn.innerText = "Excel'e Yazılıyor...";
-
-        // Hafıza Güncelleme
-        let kayitliIlaclar = JSON.parse(localStorage.getItem('ilacHafizasi')) || [];
-        if (!kayitliIlaclar.includes(ad)) {
-            kayitliIlaclar.push(ad);
-            localStorage.setItem('ilacHafizasi', JSON.stringify(kayitliIlaclar));
-            listeyiGuncelle();
+        if(kayitlar.length === 0) {
+            container.innerHTML = '<div style="font-size:12px; color:#94a3b8; text-align:center; padding: 10px;">Kayıt bulunamadı.</div>';
+            return;
         }
 
-        const veri = {
-            bayi: seciliBayi,
-            tarih: document.getElementById('tarih').value.split('-').reverse().join('.'),
-            ad: ad,
-            miktar: document.getElementById('miktar').value,
-            adet: adet,
-            fiyat: fiyat,
-            toplam: (adet * fiyat).toFixed(2),
-            turu: document.getElementById('turu').value
-        };
+        kayitlar.forEach(item => {
+            const html = `
+                <div class="record-item">
+                    <div class="record-top">
+                        <span class="record-ilac">🧪 ${item.ilacAdi}</span>
+                        <span class="record-time">${item.tarih} - ${item.saat}</span>
+                    </div>
+                    <div class="record-details">
+                        <span class="chip chip-bayi">🏢 ${item.bayi}</span>
+                        ${item.miktar && item.miktar !== '-' ? `<span class="chip chip-miktar">⚖️ ${item.miktar} (Adet: ${item.adet})</span>` : ''}
+                        ${item.birimFiyat && item.birimFiyat !== '0' ? `<span class="chip chip-fiyat">💰 ${item.birimFiyat} ₺</span>` : ''}
+                        <span class="chip chip-tur">🌾 ${item.urunTuru}</span>
+                    </div>
+                    <button class="delete-btn" onclick="kayitSil('${item.id}')">Sil</button>
+                </div>
+            `;
+            container.innerHTML += html;
+        });
+    }
 
-        try {
-            await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(veri) });
-            alert(seciliBayi + " sayfasına başarıyla kaydedildi!");
-            // Formu temizle (bayi seçimi kalsın)
-            document.getElementById('ad').value = "";
-            document.getElementById('fiyat').value = "";
-            document.getElementById('miktar').value = "";
-        } catch (e) {
-            alert("Bağlantı hatası! İnternetinizi kontrol edin.");
+    function listeyiFiltrele() {
+        const aramaMetni = document.getElementById('aramaKutusu').value.toLowerCase();
+        const filtrelenmis = tumIlacKayitlari.filter(item => 
+            item.ilacAdi.toLowerCase().includes(aramaMetni) || 
+            item.bayi.toLowerCase().includes(aramaMetni) || 
+            item.urunTuru.toLowerCase().includes(aramaMetni) ||
+            item.tarih.includes(aramaMetni)
+        );
+        listeyiEkranaBas(filtrelenmis);
+    }
+
+    function kayitSil(id) {
+        if(confirm('Bu kaydı silmek istiyor musunuz?')) {
+            db.ref('ilac_kayitlari/' + id).remove();
         }
-        btn.disabled = false;
-        btn.innerText = "Kaydet";
+    }
+
+    function exportToCSV() {
+        if (tumIlacKayitlari.length === 0) return alert("İndirilecek kayıt yok!");
+
+        let csvContent = "\uFEFFTarih;Saat;Bayi;IlacAdi;Miktar;Adet;BirimFiyat;ToplamTutar;UrunTuru\n";
+
+        tumIlacKayitlari.forEach(item => {
+            csvContent += `"${item.tarih}";"${item.saat}";"${item.bayi}";"${item.ilacAdi}";"${item.miktar || '-'}";"${item.adet}";"${item.birimFiyat}";"";"${item.urunTuru}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `ilac_kayitlari_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 
